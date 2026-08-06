@@ -9,7 +9,7 @@ namespace SofisCraftShop.Data
     {
         public ItemDataSO item;
         [Min(1)]
-        public int amount;
+        public int quantity;
     }
 
     [CreateAssetMenu(fileName = "NewRecipe", menuName = "Sofi's Craft Shop/Recipe Data")]

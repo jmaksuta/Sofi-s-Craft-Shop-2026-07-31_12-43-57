@@ -15,7 +15,8 @@ MonoBehaviour:
   itemId: consumable_berry_juice
   itemName: Berry Juice
   description: The juice of wild berries.
-  icon: {fileID: 0}
+  icon: {fileID: 5188549400205797592, guid: 65e4e3c1b1ac26142a28c54d98e93147, type: 3}
+  rarity: 0
   category: 2
   baseSellPrice: 10
   maxStackSize: 99

@@ -17,7 +17,7 @@ namespace SofisCraftShop.Core
                 if (ingredient.item == null) continue;
 
                 string id = ingredient.item.itemId;
-                int requiredAmount = ingredient.amount;
+                int requiredAmount = ingredient.quantity;
 
                 if (playerInventory.TryGetValue(id, out int availableAmount) || availableAmount < requiredAmount)
                 {
@@ -34,7 +34,7 @@ namespace SofisCraftShop.Core
             {
                 if (recipeDatabase.TryGetValue(ingredient.item, out RecipeDataSO subRecipe))
                 {
-                    for (int i = 0; i < ingredient.amount; i++)
+                    for (int i = 0; i < ingredient.quantity; i++)
                     {
                         GetRawMaterialCost(subRecipe, recipeDatabase, ref cumulativeIngredients);
                     }
@@ -45,7 +45,7 @@ namespace SofisCraftShop.Core
                     {
                         cumulativeIngredients[ingredient.item] = 0;
                     }
-                    cumulativeIngredients[ingredient.item] += ingredient.amount;
+                    cumulativeIngredients[ingredient.item] += ingredient.quantity;
                 }
             }
         }

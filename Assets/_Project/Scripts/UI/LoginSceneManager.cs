@@ -8,12 +8,12 @@ using System;
 
 namespace SofisCraftShop.UI
 {
-    public class LoginSceneManager : MonoBehaviour
+    public class LoginSceneManager : BaseSceneController
     {
         [Header("UI Panels")]
         [SerializeField] private GameObject authPanel;
-        [SerializeField] private GameObject loadingOverlay;
-        [SerializeField] private TMP_Text loadingStatusText;
+        //[SerializeField] private GameObject loadingOverlay;
+        //[SerializeField] private TMP_Text loadingStatusText;
 
         [Header("Authentication")]
         [SerializeField]
@@ -40,6 +40,7 @@ namespace SofisCraftShop.UI
 
         private async void Start()
         {
+            base.Start();
             if (this.loginUIController != null)
             {
                 this.loginUIController.OnLogin += OnLoginControllerLogin;
@@ -53,16 +54,16 @@ namespace SofisCraftShop.UI
             //UpdateAuthModeUI();
             errorText.text = string.Empty;
 
-            // Check if player has a stored JWT token from a previous session
-            if (ApiClient.Instance != null && ApiClient.Instance.IsLoggedIn)
-            {
-                await TryAutoLogin();
-            }
-            else
-            {
-                HideLoading();
-                ShowLoginUI();
-            }
+            //// Check if player has a stored JWT token from a previous session
+            //if (ApiClient.Instance != null && ApiClient.Instance.IsLoggedIn)
+            //{
+            //    await TryAutoLogin();
+            //}
+            //else
+            //{
+            //    HideLoading();
+            //    ShowLoginUI();
+            //}
         }
 
         private void OnLoginControllerLogin()
@@ -73,28 +74,29 @@ namespace SofisCraftShop.UI
         private void OnLoginControllerFailed()
         {
             HideLoading();
+            authPanel.SetActive(true);
             ShowError("Authentication failed. Please check your credentials.");
         }
 
-        private async Task TryAutoLogin()
-        {
-            ShowLoading("Restoring session...");
+        //private async Task TryAutoLogin()
+        //{
+        //    ShowLoading("Restoring session...");
 
-            // Validate token by attempting to fetch initial sync data from backend
-            string syncJson = await ApiClient.Instance.GetSyncDataAsync();
+        //    // Validate token by attempting to fetch initial sync data from backend
+        //    string syncJson = await ApiClient.Instance.GetSyncDataAsync();
 
-            if (!string.IsNullOrEmpty(syncJson))
-            {
-                Debug.Log("<color=green>[Auth] Auto-login succeeded!</color>");
-                OnLoginControllerLogin();
-            }
-            else
-            {
-                // Token expired or invalid — reset token and show login panel
-                ApiClient.Instance.Logout();
-                HideLoading();
-            }
-        }
+        //    if (!string.IsNullOrEmpty(syncJson))
+        //    {
+        //        Debug.Log("<color=green>[Auth] Auto-login succeeded!</color>");
+        //        OnLoginControllerLogin();
+        //    }
+        //    else
+        //    {
+        //        // Token expired or invalid — reset token and show login panel
+        //        ApiClient.Instance.Logout();
+        //        HideLoading();
+        //    }
+        //}
 
         //private void ToggleAuthMode()
         //{
@@ -158,21 +160,22 @@ namespace SofisCraftShop.UI
         private void TransitionToGame()
         {
             ShowLoading("Loading shop...");
+            authPanel.SetActive(false);
             SceneManager.LoadScene(mainGameSceneName);
         }
 
-        private void ShowLoading(string message)
-        {
-            loadingStatusText.text = message;
-            loadingOverlay.SetActive(true);
-            authPanel.SetActive(false);
-        }
+        //private void ShowLoading(string message)
+        //{
+        //    loadingStatusText.text = message;
+        //    loadingOverlay.SetActive(true);
+        //    authPanel.SetActive(false);
+        //}
 
-        private void HideLoading()
-        {
-            loadingOverlay.SetActive(false);
-            authPanel.SetActive(true);
-        }
+        //private void HideLoading()
+        //{
+        //    loadingOverlay.SetActive(false);
+        //    authPanel.SetActive(true);
+        //}
 
         private void ShowLoginUI()
         {
@@ -193,6 +196,24 @@ namespace SofisCraftShop.UI
         private void ShowError(string message)
         {
             errorText.text = message;
+        }
+
+        public override void LoginSuccess(Data.PlayerSyncDto syncData)
+        {
+            TransitionToGame();
+        }
+
+        public override void LoginFailure()
+        {
+            HideLoading();
+            authPanel.SetActive(true);
+        }
+
+        public override void UserNotLoggedIn()
+        {
+            HideLoading();
+            authPanel.SetActive(true);
+            ShowLoginUI();
         }
     }
 }

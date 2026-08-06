@@ -4,6 +4,7 @@ using System;
 using System.Xml;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 
@@ -41,7 +42,7 @@ namespace SofisCraftShop.UI
                 var ing = recipe.ingredients[n];
                 if (ing.item == null) continue;
 
-                reqs += $"{ing.item.name} x{ing.amount}";
+                reqs += $"{ing.item.name} x{ing.quantity}";
                 if (n < recipe.ingredients.Count - 1) reqs += ", ";
             }
 
@@ -68,13 +69,16 @@ namespace SofisCraftShop.UI
 
         private void OnCraftButtonClicked()
         {
+
             if (boundRecipe == null || CraftingManager.Instance == null) return;
 
-            bool success = CraftingManager.Instance.TryStartCraft(boundRecipe);
-            if (success)
-            {
-                RefreshButtonState();
-            }
+            CraftingManager.Instance.StartCraft(boundRecipe.resultItem.itemId);
+
+            //bool success = CraftingManager.Instance.TryStartCraft(boundRecipe);
+            //if (success)
+            //{
+            //    RefreshButtonState();
+            //}
         }
 
         // Start is called once before the first execution of Update after the MonoBehaviour is created

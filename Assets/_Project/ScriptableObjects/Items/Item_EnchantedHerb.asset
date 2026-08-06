@@ -15,7 +15,8 @@ MonoBehaviour:
   itemId: mat_enchanted_herb
   itemName: Enchanted Herb
   description: a special herb with healing properties
-  icon: {fileID: 0}
+  icon: {fileID: 4139437320822909388, guid: e4c5534f1de45ee4f9792a59a11191c6, type: 3}
+  rarity: 1
   category: 0
   baseSellPrice: 10
   maxStackSize: 99

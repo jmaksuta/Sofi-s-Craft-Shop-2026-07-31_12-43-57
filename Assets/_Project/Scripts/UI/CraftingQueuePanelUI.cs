@@ -51,7 +51,7 @@ namespace SofisCraftShop.UI
             foreach (var task in currentQueue)
             {
                 CraftingQueueSlotUI slotInstance = Instantiate(queueSlotPrefab, queueContainerParent);
-                slotInstance.BindTask(task);
+                // TODO:  slotInstance.BindTask(task);
                 activeSlotUIs.Add(slotInstance);
             }
         }

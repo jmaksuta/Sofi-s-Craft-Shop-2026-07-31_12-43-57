@@ -1,7 +1,9 @@
 using SofisCraftShop.Data;
 using SofisCraftShop.Network;
+using SofisCraftShop.UI;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace SofisCraftShop.Core
@@ -11,6 +13,14 @@ namespace SofisCraftShop.Core
     {
 
         public static CraftingManager Instance { get; private set; }
+        
+        [Header("State Data (Server Synced)")]
+        [SerializeField] 
+        private PlayerSyncDto currentSyncData = new PlayerSyncDto();
+
+        // UI Events
+        public event Action<PlayerSyncDto> OnSyncDataUpdated;
+        public event Action<string> OnCraftingFailed;
 
         [Header("Runtime Player State")]
         [SerializeField]
@@ -38,16 +48,29 @@ namespace SofisCraftShop.Core
         }
 
         // Start is called once before the first execution of Update after the MonoBehaviour is created
-        void Start()
+        private async void Start()
         {
-
+            // Initial sync on startup
+            await RefreshServerStateAsync();
         }
 
         // Update is called once per frame
         void Update()
         {
-            ProcessCraftingQueue(Time.deltaTime);
+            //ProcessCraftingQueue(Time.deltaTime);
         }
+
+        //// Example UI Recipe Button Click Handler
+        //public void OnCraftButtonClicked(string recipeId)
+        //{
+        //    CraftingManager.Instance.StartCraft(recipeId);
+        //}
+
+        //// Example UI Queue Slot "Claim" Button Click Handler
+        //public void OnClaimButtonClicked(string queueItemId)
+        //{
+        //    CraftingManager.Instance.ClaimCraft(queueItemId);
+        //}
 
         public void AddItem(ItemDataSO item, int amount = 1)
         {
@@ -76,7 +99,7 @@ namespace SofisCraftShop.Core
                 if (req.item == null) continue;
 
                 string id = req.item.itemId;
-                if (!inventory.TryGetValue(id, out int count) || count < req.amount)
+                if (!inventory.TryGetValue(id, out int count) || count < req.quantity)
                 {
                     return false;
                 }
@@ -95,7 +118,7 @@ namespace SofisCraftShop.Core
                 string id = req.item.itemId;
                 if (inventory.ContainsKey(id))
                 {
-                    inventory[id] -= req.amount;
+                    inventory[id] -= req.quantity;
                     if (inventory[id] <= 0)
                     {
                         inventory.Remove(id);
@@ -129,44 +152,83 @@ namespace SofisCraftShop.Core
             return true;
         }
 
-        // TODO: hook into api
-        //public async Task RefreshServerStateAsync()
-        //{
-        //    if (!ApiClient.Instance.IsLoggedIn)
-        //    {
-        //        Debug.LogWarning("[CraftingManager] Cannot sync: Player not logged in.");
-        //        return;
-        //    }
+        #region API Handlers
 
-        //    string json = await ApiClient.Instance.GetSyncDataAsync();
-        //    if (!string.IsNullOrEmpty(json))
-        //    {
-        //        currentSyncData = JsonUtility.FromJson<PlayerSyncDto>(json);
-        //        OnSyncDataUpdated?.Invoke(currentSyncData);
-        //    }
-        //}
+        /// <summary>
+        /// Fetches full player inventory, gold, and crafting queue from backend.
+        /// </summary>
+        public async Task RefreshServerStateAsync()
+        {
+            if (!ApiClient.Instance.IsLoggedIn)
+            {
+                Debug.LogWarning("[CraftingManager] Cannot sync: Player not logged in.");
+                return;
+            }
 
-        // TODO: hook into api
-        //private void StartCraft(string recipeId)
-        //{
-        //    if (string.IsNullOrEmpty(recipeId)) return;
+            string json = await ApiClient.Instance.GetSyncDataAsync();
+            if (!string.IsNullOrEmpty(json))
+            {
+                currentSyncData = JsonUtility.FromJson<PlayerSyncDto>(json);
+                OnSyncDataUpdated?.Invoke(currentSyncData);
+            }
+        }
 
-        //    // 1. Call Backend
-        //    string responseJson = await ApiClient.Instance.RequestStartCraftAsync(recipeId);
+        /// <summary>
+        /// Replaces local crafting logic with API call to start crafting.
+        /// </summary>
+        public async void StartCraft(string recipeId)
+        {
+            if (string.IsNullOrEmpty(recipeId)) return;
 
-        //    if (!string.IsNullOrEmpty(responseJson))
-        //    {
-        //        // 2. Parse updated queue item or refreshed state returned by server
-        //        Debug.Log($"<color=green>[Crafting] Craft started successfully for {recipeId}</color>");
+            // 1. Call Backend
+            string responseJson = await ApiClient.Instance.RequestStartCraftAsync(recipeId);
 
-        //        // Refresh full state to sync updated gold, materials, and queue
-        //        await RefreshServerStateAsync();
-        //    }
-        //    else
-        //    {
-        //        OnCraftingFailed?.Invoke("Failed to start craft. Check missing materials or queue capacity.");
-        //    }
-        //}
+            if (!string.IsNullOrEmpty(responseJson))
+            {
+                // 2. Parse updated queue item or refreshed state returned by server
+                Debug.Log($"<color=green>[Crafting] Craft started successfully for {recipeId}</color>");
+
+                // Refresh full state to sync updated gold, materials, and queue
+                await RefreshServerStateAsync();
+            }
+            else
+            {
+                OnCraftingFailed?.Invoke("Failed to start craft. Check missing materials or queue capacity.");
+            }
+        }
+
+        /// <summary>
+        /// Replaces local array manipulation with API call to claim completed craft.
+        /// </summary>
+        public async void ClaimCraft(string queueItemId)
+        {
+            if (string.IsNullOrEmpty(queueItemId)) return;
+
+            // 1. Call Backend
+            string responseJson = await ApiClient.Instance.RequestClaimCraftAsync(queueItemId);
+
+            if (!string.IsNullOrEmpty(responseJson))
+            {
+                // 2. Server processed item delivery and removed item from queue
+                Debug.Log($"<color=green>[Crafting] Item claimed successfully! Queue ID: {queueItemId}</color>");
+
+                // Parse updated player sync state returned by claim endpoint
+                currentSyncData = JsonUtility.FromJson<PlayerSyncDto>(responseJson);
+                OnSyncDataUpdated?.Invoke(currentSyncData);
+            }
+            else
+            {
+                OnCraftingFailed?.Invoke("Failed to claim craft. Item might still be in progress.");
+            }
+        }
+
+        #endregion
+
+        #region Getters for UI Bindings
+
+        public PlayerSyncDto CurrentState => currentSyncData;
+
+        #endregion
 
         private void ProcessCraftingQueue(float deltaTime)
         {

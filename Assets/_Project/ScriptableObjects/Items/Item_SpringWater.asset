@@ -15,8 +15,9 @@ MonoBehaviour:
   itemId: mat_spring_water
   itemName: Spring Water
   description: Fresh water from a spring.
-  icon: {fileID: 0}
-  category: 0
+  icon: {fileID: 1212853687797949148, guid: 0b40c2850d4d0a547b41e6012f428b8b, type: 3}
+  rarity: 0
+  category: 2
   baseSellPrice: 1
   maxStackSize: 99
   isTradable: 1

@@ -15,7 +15,8 @@ MonoBehaviour:
   itemId: mat_wild_berry
   itemName: Wild Berry
   description: "A sweet forest berry harvested by Oliver\t"
-  icon: {fileID: 0}
+  icon: {fileID: -8876527227452662825, guid: 7c144ba14a5ea534abff90e2e0233ac7, type: 3}
+  rarity: 0
   category: 0
   baseSellPrice: 5
   maxStackSize: 99

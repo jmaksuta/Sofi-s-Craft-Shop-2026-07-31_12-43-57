@@ -15,7 +15,8 @@ MonoBehaviour:
   itemId: consumable_elixir_of_vitality
   itemName: Elixir of Vitality
   description: An elixir that heals the body and spirit.
-  icon: {fileID: 0}
+  icon: {fileID: -5692636214309101407, guid: 7fa871bc8f9857f4bb4f448446dcab1a, type: 3}
+  rarity: 1
   category: 2
   baseSellPrice: 10
   maxStackSize: 99

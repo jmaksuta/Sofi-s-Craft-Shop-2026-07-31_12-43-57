@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +14,13 @@ namespace SofisCraftShop.Network
         public string token;
         public string playerId;
         public string username;
+
+        public AuthResponse() : base()
+        {
+            this.token = string.Empty;
+            this.playerId = string.Empty;
+            this.username = string.Empty;
+        }
     }
 
     [Serializable]
@@ -20,6 +29,13 @@ namespace SofisCraftShop.Network
         public string username;
         public string email;
         public string password;
+
+        public RegisterPayload() : base()
+        {
+            this.username = string.Empty;
+            this.email = string.Empty;
+            this.password = string.Empty;
+        }
     }
 
     [Serializable]
@@ -27,18 +43,34 @@ namespace SofisCraftShop.Network
     {
         public string username;
         public string password;
+
+        public LoginPayload() : base()
+        {
+            this.username = string.Empty;
+            this.password = string.Empty;
+        }
     }
 
     [Serializable]
     public class StartCraftPayload
     {
         public string recipeId;
+
+        public StartCraftPayload() : base()
+        {
+            this.recipeId = string.Empty;
+        }
     }
 
     [Serializable]
     public class ClaimCraftPayload
     {
         public string queueItemId;
+
+        public ClaimCraftPayload() : base()
+        {
+            this.queueItemId = string.Empty;
+        }
     }
 
     public class ApiClient : MonoBehaviour
@@ -75,7 +107,7 @@ namespace SofisCraftShop.Network
             var payload = new RegisterPayload { username = username, email = email, password = password };
             string jsonBody = JsonUtility.ToJson(payload);
 
-            string responseJson = await SendPostRequestAsync($"{baseUrl}/Auth/register", jsonBody, requireAuth: false);
+            string? responseJson = await SendPostRequestAsync($"{baseUrl}/Auth/register", jsonBody, requireAuth: false);
 
             if (!string.IsNullOrEmpty(responseJson))
             {
@@ -121,7 +153,7 @@ namespace SofisCraftShop.Network
             var payload = new LoginPayload { username = username, password = password };
             string jsonBody = JsonUtility.ToJson(payload);
 
-            string responseJson = await SendPostRequestAsync($"{baseUrl}/Auth/login", jsonBody, requireAuth: false);
+            string? responseJson = await SendPostRequestAsync($"{baseUrl}/Auth/login", jsonBody, requireAuth: false);
 
             if (!string.IsNullOrEmpty(responseJson))
             {
@@ -148,19 +180,19 @@ namespace SofisCraftShop.Network
 
         #region Crafting Endpoints
 
-        public async Task<string> GetSyncDataAsync()
+        public async Task<string?> GetSyncDataAsync()
         {
             return await SendGetRequestAsync($"{baseUrl}/Crafting/sync");
         }
 
-        public async Task<string> RequestStartCraftAsync(string recipeId)
+        public async Task<string?> RequestStartCraftAsync(string recipeId)
         {
             var payload = new StartCraftPayload { recipeId = recipeId };
             string jsonBody = JsonUtility.ToJson(payload);
             return await SendPostRequestAsync($"{baseUrl}/Crafting/start", jsonBody);
         }
 
-        public async Task<string> RequestClaimCraftAsync(string queueItemId)
+        public async Task<string?> RequestClaimCraftAsync(string queueItemId)
         {
             var payload = new ClaimCraftPayload { queueItemId = queueItemId };
             string jsonBody = JsonUtility.ToJson(payload);
@@ -171,7 +203,7 @@ namespace SofisCraftShop.Network
 
         #region Core WebRequest Pipeline
 
-        private async Task<string> SendGetRequestAsync(string uri)
+        private async Task<string?> SendGetRequestAsync(string uri)
         {
             using (UnityWebRequest request = UnityWebRequest.Get(uri))
             {
@@ -187,7 +219,31 @@ namespace SofisCraftShop.Network
             }
         }
 
-        private async Task<string> SendPostRequestAsync(string uri, string jsonPayload, bool requireAuth = true)
+
+        public async Task<T?> PostAsync<S, T>(string uri, S Payload, bool requireAuth = true)
+        {
+            using (UnityWebRequest request = new UnityWebRequest(uri, "POST"))
+            {
+#if UNITY_EDITOR
+                request.certificateHandler = new BypassDevCertificateHandler();
+#endif
+                string jsonPayload = JsonUtility.ToJson(Payload);
+
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
+                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                AttachHeaders(request, requireAuth);
+
+                var operation = request.SendWebRequest();
+
+                while (!operation.isDone) await Task.Yield();
+
+                return HandleResponse<T>(request);
+            }
+        }
+
+        private async Task<string?> SendPostRequestAsync(string uri, string jsonPayload, bool requireAuth = true)
         {
             using (UnityWebRequest request = new UnityWebRequest(uri, "POST"))
             {
@@ -219,7 +275,7 @@ namespace SofisCraftShop.Network
             }
         }
 
-        private string HandleResponse(UnityWebRequest request)
+        private string? HandleResponse(UnityWebRequest request)
         {
             if (request.result == UnityWebRequest.Result.Success)
             {
@@ -236,6 +292,27 @@ namespace SofisCraftShop.Network
             }
 
             return null;
+        }
+
+        private T? HandleResponse<T>(UnityWebRequest request)
+        {
+            T? response = default;
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                response = JsonUtility.FromJson<T>(request.downloadHandler.text);
+                return response;
+            }
+
+            if (request.responseCode == 401)
+            {
+                Debug.LogError("[API] 401 Unauthorized - JWT Token expired or invalid.");
+            }
+            else
+            {
+                Debug.LogError($"[API] Request Failed ({request.responseCode}): {request.error}\n{request.downloadHandler.text}");
+            }
+
+            return response;
         }
 
         #endregion
